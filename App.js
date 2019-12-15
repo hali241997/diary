@@ -4,7 +4,9 @@ import * as Font from 'expo-font';
 import { AppLoading } from 'expo';
 import AppNavigation from './src/navigation/AppNavigation';
 import { setNavigator } from './src/navigationRef';
-import {Provider as AuthProvider} from './src/context/AuthContext'
+import {Provider as AuthProvider} from './src/context/AuthContext';
+import {Provider as DiaryProvider} from './src/context/DiaryContext';
+import { AsyncStorage } from 'react-native';
 
 const db = SQLite.openDatabase('db.db');
 
@@ -35,7 +37,7 @@ class App extends Component {
   async loadDB() {
     await db.transaction(tx => {
       tx.executeSql('CREATE TABLE IF NOT EXISTS "Users" ("id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, "username"	TEXT NOT NULL UNIQUE, "password"	TEXT NOT NULL);'),
-      tx.executeSql('CREATE TABLE IF NOT EXISTS "Diaries" ("id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, "user_id"	INTEGER NOT NULL, "time"	TEXT NOT NULL UNIQUE, "title"	TEXT NOT NULL, "description"	TEXT, FOREIGN KEY("user_id") REFERENCES "User"("id"));')
+      tx.executeSql('CREATE TABLE IF NOT EXISTS "Diaries" ("id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, "user_id"	INTEGER NOT NULL, "time"	TEXT NOT NULL, "title"	TEXT NOT NULL, "description"	TEXT, FOREIGN KEY("user_id") REFERENCES "User"("id"));')
     },
     err => console.log(err),
     () => {
@@ -48,6 +50,8 @@ class App extends Component {
       tx.executeSql('DROP TABLE "Users"'),
       tx.executeSql('DROP TABLE "Diaries"')
     }, err => console.log(err), success => console.log(success));
+
+    await AsyncStorage.removeItem('currentUser');
   }
 
   render() {
@@ -55,9 +59,11 @@ class App extends Component {
       <>
       {
         this.state.fontLoaded && this.state.dbLoaded ? (
-          <AuthProvider>
-            <AppNavigation ref={(navigator) => setNavigator(navigator)} />
-          </AuthProvider>
+          <DiaryProvider>
+            <AuthProvider>
+              <AppNavigation ref={(navigator) => setNavigator(navigator)} />
+            </AuthProvider>
+          </DiaryProvider>
         ) : (
           <AppLoading />
         )
